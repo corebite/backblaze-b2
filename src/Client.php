@@ -181,7 +181,7 @@ class Client
     public function listBuckets($refresh = false, array $options = [])
     {
         $cacheKey = 'B2-SDK-Buckets';
-        $cacheKey .= '_'.((count($options)) ? implode('_', $options) : '');
+        $cacheKey .= '_'.(count($options) ? implode('_', $options) : '');
 
         $bucketsObj = [];
         if (!$this->cache->has($cacheKey)) {
