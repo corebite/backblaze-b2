@@ -174,21 +174,32 @@ class Client
     /**
      * Returns a list of bucket objects representing the buckets on the account.
      *
+     * @param bool $refresh Refresh the cache or not, default FALSE
+     * @param array $options List of options for b2_list_bucket request, bucketId, bucketName, bucketTypes
      * @return Bucket[]
      */
-    public function listBuckets($refresh = false)
+    public function listBuckets($refresh = false, array $options = [])
     {
         $cacheKey = 'B2-SDK-Buckets';
+        $cacheKey .= '_'.((count($options)) ? implode('_', $options) : '');
+
         $bucketsObj = [];
         if (!$this->cache->has($cacheKey)) {
             $refresh = true;
         }
         if ($refresh === true) {
-            $buckets = $this->request('POST', '/b2_list_buckets', [
+            $req =  [
                 'json' => [
-                    'accountId' => $this->accountId,
-                ],
-            ])['buckets'];
+                    'accountId' => $this->accountId,    // required
+                ]
+            ];
+            $allowedOptions = ['bucketId', 'bucketName', 'bucketTypes'];
+            foreach ($options as $index => $option) {
+                if (in_array($index, $allowedOptions)) {
+                    $req['json'][$index] = $option;
+                }
+            }
+            $buckets = $this->request('POST', '/b2_list_buckets', $req)['buckets'];
             $this->cache->set($cacheKey, $buckets, 10080);
         } else {
             $buckets = $this->cache->get($cacheKey);
@@ -522,7 +533,7 @@ class Client
      */
     public function getBucketFromId($id)
     {
-        $buckets = $this->listBuckets();
+        $buckets = $this->listBuckets(false, ['bucketId' => $id]);
 
         foreach ($buckets as $bucket) {
             if ($bucket->getId() === $id) {
@@ -540,7 +551,7 @@ class Client
     public function getBucketFromName($name)
     {
 
-        $buckets = $this->listBuckets();
+        $buckets = $this->listBuckets(false, ['bucketName' => $name]);
 
         foreach ($buckets as $bucket) {
             if ($bucket->getName() === $name) {
